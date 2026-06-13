@@ -1,0 +1,21 @@
+# Brainstorming / visual companion
+.superpowers/
+
+# Android
+build/
+.gradle/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# IDE
+.idea/
+*.iml
+
+# Local
+local.properties
+
+# OS
+.DS_Store
+Thumbs.db
