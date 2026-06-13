@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Voice Rider</string>
+    <string name="voice_hint">说"美团精灵"或输入指令…</string>
+    <string name="label_orders">进行中</string>
+    <string name="label_ai_reminders">智能提醒</string>
+    <string name="label_voice_ready">语音就绪</string>
+    <string name="label_accessibility_on">无障碍已开</string>
+    <string name="label_today_income">今日 ¥%1$s</string>
+    <string name="accessibility_service_desc">Voice Rider 无障碍服务，用于自动化操作美团骑手APP，实现语音控制功能。</string>
+</resources>

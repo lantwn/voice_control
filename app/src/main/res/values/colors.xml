@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Background -->
+    <color name="bg_warm">#F8F6F2</color>
+    <color name="bg_white">#FFFFFF</color>
+    <color name="bg_dark">#1A1A2E</color>
+
+    <!-- Brand -->
+    <color name="brand_primary">#667EEA</color>
+    <color name="brand_secondary">#764BA2</color>
+
+    <!-- Semantic -->
+    <color name="semantic_success">#38A169</color>
+    <color name="semantic_warning">#D69E2E</color>
+    <color name="semantic_danger">#E53E3E</color>
+    <color name="semantic_info">#3182CE</color>
+
+    <!-- Neutral -->
+    <color name="text_primary">#1A1A1A</color>
+    <color name="text_secondary">#888888</color>
+    <color name="text_hint">#CCCCCC</color>
+    <color name="divider">#F0F0F0</color>
+
+    <!-- Tags -->
+    <color name="tag_waiting_bg">#FEF9E7</color>
+    <color name="tag_waiting_text">#B45309</color>
+    <color name="tag_delivering_bg">#EFF6FF</color>
+    <color name="tag_delivering_text">#1E40AF</color>
+
+    <!-- Voice bar -->
+    <color name="voice_bar_bg">#2C2C2C</color>
+</resources>
