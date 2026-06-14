@@ -11,7 +11,11 @@ build/
 
 # IDE
 .idea/
+.vscode/
 *.iml
+
+# Claude
+.claude/
 
 # Local
 local.properties

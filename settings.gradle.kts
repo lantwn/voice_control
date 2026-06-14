@@ -15,4 +15,4 @@ dependencyResolution {
 }
 
 rootProject.name = "VoiceRider"
-include(":core", ":voice", ":accessibility", ":navigation", ":app")
+include(":core", ":voice", ":accessibility", ":app")

@@ -25,7 +25,7 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":voice"))
     implementation(project(":accessibility"))
-    implementation(project(":navigation"))
+
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

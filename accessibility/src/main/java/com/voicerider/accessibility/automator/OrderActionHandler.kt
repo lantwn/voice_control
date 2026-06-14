@@ -35,7 +35,7 @@ class OrderActionHandler(
             CommandType.REJECT_ORDER -> automator.clickRejectButton(root)
             CommandType.PICKUP_DONE -> automator.clickPickupDone(root)
             CommandType.DELIVERY_DONE -> automator.clickDeliveryDone(root)
-            else -> false // NAV/CALL/SMS handled by :app
+            else -> false // CALL/SMS handled by :app
         }
 
         if (!success) {

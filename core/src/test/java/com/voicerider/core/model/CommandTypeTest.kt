@@ -39,8 +39,7 @@ class CommandTypeTest {
     }
 
     @Test
-    fun `nav commands have no required status`() {
-        assertNull(CommandType.NAV_TO_PICKUP.requiredStatus)
-        assertNull(CommandType.NAV_TO_CUSTOMER.requiredStatus)
+    fun `call customer has no required status`() {
+        assertNull(CommandType.CALL_CUSTOMER.requiredStatus)
     }
 }
