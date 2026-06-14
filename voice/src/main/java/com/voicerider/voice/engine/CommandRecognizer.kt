@@ -1,7 +1,5 @@
 package com.voicerider.voice.engine
 
-import com.voicerider.core.model.CommandType
-import com.voicerider.core.model.VoiceCommand
 import com.voicerider.core.util.Logger
 import com.voicerider.voice.config.VoiceConfig
 import com.voicerider.voice.fallback.SystemRecognizer
@@ -9,25 +7,24 @@ import com.voicerider.voice.fallback.SystemRecognizer
 class CommandRecognizer(private val systemRecognizer: SystemRecognizer) {
     private var useXunfeiOnline = true
 
-    suspend fun recognize(): VoiceCommand? {
+    /**
+     * 识别语音并返回原始文本。
+     * @return 识别到的原始文本，超时或识别失败返回 null。
+     */
+    suspend fun recognize(): String? {
         val rawText = if (useXunfeiOnline) {
             recognizeViaXunfei() ?: fallbackToSystem()
         } else {
             fallbackToSystem()
-        } ?: return null
+        }
 
-        val commandType = CommandType.fromText(rawText)
-        if (commandType == null) {
-            Logger.w("CommandRecognizer: no match for '$rawText'")
+        if (rawText.isNullOrBlank()) {
+            Logger.w("CommandRecognizer: no speech recognized (timeout or empty)")
             return null
         }
 
-        Logger.i("CommandRecognizer: matched ${commandType.name} from '$rawText'")
-        return VoiceCommand(
-            type = commandType,
-            rawText = rawText,
-            confidence = 0.8f
-        )
+        Logger.i("CommandRecognizer: recognized '$rawText'")
+        return rawText
     }
 
     private suspend fun recognizeViaXunfei(): String? {

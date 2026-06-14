@@ -30,7 +30,8 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
+        // 使用 Activity 级 ViewModel，与 MainActivity 共享同一实例
+        viewModel = ViewModelProvider(requireActivity())[HomeViewModel::class.java]
         viewModel.wireVoiceService()
 
         setupOrders(view)

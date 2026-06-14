@@ -8,7 +8,9 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -19,12 +21,24 @@ import com.voicerider.core.util.Logger
 
 class FloatingWindowService : Service() {
 
+    enum class WindowState { IDLE, LISTENING, SUCCESS, ERROR }
+
     private var windowManager: WindowManager? = null
     private var floatingView: View? = null
-    private var isListening = false
+    private var currentState = WindowState.IDLE
+    private val handler = Handler(Looper.getMainLooper())
+
+    // Dragging support
+    private var initialX = 0
+    private var initialY = 0
+    private var initialTouchX = 0f
+    private var initialTouchY = 0f
+    private var hasDragged = false
+    private var layoutParams: WindowManager.LayoutParams? = null
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         createFloatingWindow()
         startForeground()
@@ -34,7 +48,7 @@ class FloatingWindowService : Service() {
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         floatingView = inflater.inflate(R.layout.view_floating_window, null)
 
-        val params = WindowManager.LayoutParams(
+        layoutParams = WindowManager.LayoutParams(
             56.dpToPx(),
             56.dpToPx(),
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
@@ -50,27 +64,89 @@ class FloatingWindowService : Service() {
 
         floatingView?.setOnClickListener {
             Logger.d("FloatingWindow: clicked — triggering voice recognition")
-            toggleListening()
+            setState(WindowState.LISTENING)
             VoiceRoutingService.instance?.startVoiceRecognition()
         }
 
         floatingView?.setOnLongClickListener {
-            Logger.d("FloatingWindow: long clicked — stopping self")
-            stopSelf()
+            Logger.d("FloatingWindow: long clicked — returning to main app")
+            val intent = Intent(this, com.voicerider.app.ui.MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
             true
         }
 
-        windowManager?.addView(floatingView, params)
+        // Enable dragging (short tap = click, drag beyond threshold = move)
+        floatingView?.setOnTouchListener { view, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    initialX = layoutParams?.x ?: 0
+                    initialY = layoutParams?.y ?: 0
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    hasDragged = false
+                    false // let system see the event for click detection
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - initialTouchX
+                    val dy = event.rawY - initialTouchY
+                    if (kotlin.math.abs(dx) > 10 || kotlin.math.abs(dy) > 10) {
+                        hasDragged = true
+                        layoutParams?.x = initialX + dx.toInt()
+                        layoutParams?.y = initialY + dy.toInt()
+                        layoutParams?.let { windowManager?.updateViewLayout(view, it) }
+                    }
+                    hasDragged
+                }
+                else -> false
+            }
+        }
+
+        windowManager?.addView(floatingView, layoutParams)
+        applyStateVisuals()
     }
 
-    fun toggleListening() {
-        isListening = !isListening
-        if (isListening) {
-            floatingView?.startAnimation(
-                AnimationUtils.loadAnimation(this, R.anim.pulse_scale)
-            )
-        } else {
-            floatingView?.clearAnimation()
+    fun setState(state: WindowState) {
+        if (currentState == state) return
+        currentState = state
+        Logger.d("FloatingWindow: state → $state")
+        applyStateVisuals()
+
+        // Auto-reset SUCCESS/ERROR back to IDLE after 2s
+        if (state == WindowState.SUCCESS || state == WindowState.ERROR) {
+            handler.postDelayed({ setState(WindowState.IDLE) }, 2000)
+        }
+    }
+
+    private fun applyStateVisuals() {
+        val view = floatingView ?: return
+
+        // Clear previous animations
+        view.clearAnimation()
+
+        when (currentState) {
+            WindowState.IDLE -> {
+                view.setBackgroundResource(R.drawable.bg_floating_idle)
+            }
+            WindowState.LISTENING -> {
+                view.setBackgroundResource(R.drawable.bg_floating_listening)
+                view.startAnimation(
+                    AnimationUtils.loadAnimation(this, R.anim.pulse_scale)
+                )
+            }
+            WindowState.SUCCESS -> {
+                view.setBackgroundResource(R.drawable.bg_floating_success)
+                view.startAnimation(
+                    AnimationUtils.loadAnimation(this, R.anim.bounce_in)
+                )
+            }
+            WindowState.ERROR -> {
+                view.setBackgroundResource(R.drawable.bg_floating_error)
+                view.startAnimation(
+                    AnimationUtils.loadAnimation(this, R.anim.shake)
+                )
+            }
         }
     }
 
@@ -96,7 +172,13 @@ class FloatingWindowService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        instance = null
         floatingView?.let { windowManager?.removeView(it) }
         super.onDestroy()
+    }
+
+    companion object {
+        var instance: FloatingWindowService? = null
+            private set
     }
 }

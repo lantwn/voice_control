@@ -40,8 +40,30 @@ class HomeViewModel : ViewModel() {
     }
 
     fun wireVoiceService() {
-        VoiceRoutingService.instance?.setOnFeedbackListener { message, success ->
-            _commandFeedback.postValue(Pair(message, success))
+        VoiceRoutingService.instance?.apply {
+            // UI 反馈监听
+            setOnFeedbackListener { message, success ->
+                _commandFeedback.postValue(Pair(message, success))
+                // 同步悬浮窗状态
+                val floatState = if (success)
+                    com.voicerider.app.service.FloatingWindowService.WindowState.SUCCESS
+                else
+                    com.voicerider.app.service.FloatingWindowService.WindowState.ERROR
+                com.voicerider.app.service.FloatingWindowService.instance?.setState(floatState)
+            }
+            // 命令 → Accessibility 自动化桥接
+            setOnCommandListener { command ->
+                val result = com.voicerider.accessibility.service.RiderAccessibilityService
+                    .instance?.handleVoiceCommand(command)
+                if (result != null) {
+                    if (!result.success) {
+                        // 操作失败 → TTS 播报错误原因
+                        VoiceRoutingService.instance?.speakFeedback(result.message)
+                        _commandFeedback.postValue(Pair(result.message, false))
+                    }
+                    // else: 成功由 onFeedback 回调处理（dispatchCommand 中已触发）
+                }
+            }
         }
     }
 

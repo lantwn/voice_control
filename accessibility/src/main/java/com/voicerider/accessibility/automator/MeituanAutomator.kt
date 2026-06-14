@@ -7,7 +7,6 @@ import com.voicerider.core.config.AppConfig
 import com.voicerider.core.util.Logger
 
 class MeituanAutomator {
-    private var retryCount = 0
 
     fun clickAcceptButton(root: AccessibilityNodeInfo): Boolean {
         Logger.i("MeituanAutomator: clicking accept button")
@@ -61,11 +60,14 @@ class MeituanAutomator {
     }
 
     private fun clickWithRetry(root: AccessibilityNodeInfo, target: ElementTarget): Boolean {
-        retryCount = 0
+        var retryCount = 0
         while (retryCount < AppConfig.MAX_AUTOMATION_RETRIES) {
             if (ElementLocator.findAndClick(root, target)) return true
             retryCount++
             Logger.w("MeituanAutomator: retry $retryCount/${AppConfig.MAX_AUTOMATION_RETRIES}")
+            if (retryCount < AppConfig.MAX_AUTOMATION_RETRIES) {
+                Thread.sleep(100) // brief delay before next attempt
+            }
         }
         return false
     }

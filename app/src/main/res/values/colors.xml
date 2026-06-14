@@ -22,8 +22,8 @@
     <color name="divider">#F0F0F0</color>
 
     <!-- Tags -->
-    <color name="tag_waiting_bg">#FEF9E7</color>
-    <color name="tag_waiting_text">#B45309</color>
+    <color name="tag_accepted_bg">#FEF9E7</color>
+    <color name="tag_accepted_text">#B45309</color>
     <color name="tag_delivering_bg">#EFF6FF</color>
     <color name="tag_delivering_text">#1E40AF</color>
 

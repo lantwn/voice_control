@@ -65,17 +65,18 @@ class OrderStateMachineTest {
     // ========== 送达场景 ==========
 
     @Test
-    fun `送达 — DELIVERING状态下允许确认送达`() {
-        val order = sampleOrder.copy(status = OrderStatus.DELIVERING)
+    fun `送达 — PICKED_UP状态下允许确认送达`() {
+        val order = sampleOrder.copy(status = OrderStatus.PICKED_UP)
         val cmd = CommandType.fromText("已送达")
         assertEquals(CommandType.DELIVERY_DONE, cmd)
-        assertEquals(OrderStatus.DELIVERING, cmd?.requiredStatus)
+        assertEquals(OrderStatus.PICKED_UP, cmd?.requiredStatus)
         assertTrue(cmd?.requiredStatus == order.status)
     }
 
     @Test
     fun `送达 — ACCEPTED状态下不允许送达`() {
         val cmd = CommandType.fromText("已送达")
+        assertEquals(OrderStatus.PICKED_UP, cmd?.requiredStatus)
         assertNotEquals(OrderStatus.ACCEPTED, cmd?.requiredStatus)
     }
 
@@ -89,13 +90,45 @@ class OrderStateMachineTest {
         order = order.copy(status = OrderStatus.ACCEPTED)
         assertEquals(OrderStatus.ACCEPTED, order.status)
 
-        // 取餐：ACCEPTED → DELIVERING（取餐后直接进入配送中）
+        // 取餐：ACCEPTED → PICKED_UP（取餐后进入已取餐状态）
+        order = order.copy(status = OrderStatus.PICKED_UP)
+        assertEquals(OrderStatus.PICKED_UP, order.status)
+
+        // 导航送餐：PICKED_UP → 启动导航（状态不变，导航由 :navigation 处理）
+        val navCmd = CommandType.fromText("导航到顾客")
+        assertEquals(CommandType.NAV_TO_CUSTOMER, navCmd)
+        assertEquals(OrderStatus.PICKED_UP, navCmd?.requiredStatus)
+
+        // 配送进行中（由外部状态变更或自动化操作触发）
         order = order.copy(status = OrderStatus.DELIVERING)
         assertEquals(OrderStatus.DELIVERING, order.status)
 
-        // 送达：DELIVERING → COMPLETED
+        // 送达确认：PICKED_UP → COMPLETED（或 DELIVERING → COMPLETED）
         order = order.copy(status = OrderStatus.COMPLETED)
         assertEquals(OrderStatus.COMPLETED, order.status)
+    }
+
+    // ========== 导航命令场景 ==========
+
+    @Test
+    fun `导航取餐 — ACCEPTED状态下允许`() {
+        val cmd = CommandType.fromText("导航到取餐点")
+        assertEquals(CommandType.NAV_TO_MERCHANT, cmd)
+        assertEquals(OrderStatus.ACCEPTED, cmd?.requiredStatus)
+    }
+
+    @Test
+    fun `导航送餐 — PICKED_UP状态下允许`() {
+        val cmd = CommandType.fromText("导航到顾客")
+        assertEquals(CommandType.NAV_TO_CUSTOMER, cmd)
+        assertEquals(OrderStatus.PICKED_UP, cmd?.requiredStatus)
+    }
+
+    @Test
+    fun `导航送餐 — ACCEPTED状态下不允许`() {
+        val cmd = CommandType.fromText("导航送餐")
+        assertEquals(OrderStatus.PICKED_UP, cmd?.requiredStatus)
+        assertNotEquals(OrderStatus.ACCEPTED, cmd?.requiredStatus)
     }
 
     // ========== 模糊命令匹配 ==========

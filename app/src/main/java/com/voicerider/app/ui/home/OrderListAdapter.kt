@@ -2,6 +2,8 @@ package com.voicerider.app.ui.home
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.voicerider.app.R
 import com.voicerider.core.model.Order
@@ -9,14 +11,7 @@ import com.voicerider.core.model.OrderStatus
 
 class OrderListAdapter(
     private val onOrderClick: (Order) -> Unit
-) : RecyclerView.Adapter<OrderViewHolder>() {
-
-    private var orders: List<Order> = emptyList()
-
-    fun submitList(list: List<Order>) {
-        orders = list
-        notifyDataSetChanged()
-    }
+) : ListAdapter<Order, OrderViewHolder>(OrderDiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): OrderViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -25,10 +20,16 @@ class OrderListAdapter(
     }
 
     override fun onBindViewHolder(holder: OrderViewHolder, position: Int) {
-        holder.bind(orders[position])
+        holder.bind(getItem(position))
     }
 
-    override fun getItemCount() = orders.size
+    private object OrderDiffCallback : DiffUtil.ItemCallback<Order>() {
+        override fun areItemsTheSame(oldItem: Order, newItem: Order): Boolean =
+            oldItem.id == newItem.id
+
+        override fun areContentsTheSame(oldItem: Order, newItem: Order): Boolean =
+            oldItem == newItem
+    }
 }
 
 class OrderViewHolder(
@@ -49,8 +50,12 @@ class OrderViewHolder(
             text = order.status.label
             when (order.status) {
                 OrderStatus.ACCEPTED -> {
-                    setTextColor(view.context.getColor(R.color.tag_waiting_text))
-                    setBackgroundResource(R.drawable.bg_status_tag_waiting)
+                    setTextColor(view.context.getColor(R.color.tag_accepted_text))
+                    setBackgroundResource(R.drawable.bg_status_tag_accepted)
+                }
+                OrderStatus.PICKED_UP -> {
+                    setTextColor(view.context.getColor(R.color.tag_delivering_text))
+                    setBackgroundResource(R.drawable.bg_status_tag_delivering)
                 }
                 OrderStatus.DELIVERING -> {
                     setTextColor(view.context.getColor(R.color.tag_delivering_text))
