@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.voicerider.app.R
 import com.voicerider.app.ui.OrderDetailActivity
+import com.voicerider.app.ui.ReminderListActivity
 import com.voicerider.app.viewmodel.HomeViewModel
 
 class HomeFragment : Fragment() {
@@ -82,9 +83,9 @@ class HomeFragment : Fragment() {
 
     private fun observeData() {
         viewModel.orders.observe(viewLifecycleOwner) { orderAdapter.submitList(it) }
-        viewModel.reminders.observe(viewLifecycleOwner) { reminders ->
+        viewModel.remindersPreview.observe(viewLifecycleOwner) { reminders ->
             reminderAdapter.submitList(reminders)
-            view?.findViewById<TextView>(R.id.tv_reminder_count)?.text = "${reminders.size}条"
+            view?.findViewById<TextView>(R.id.tv_reminder_count)?.text = "${reminders.size}/${viewModel.reminders.value?.size ?: 0}条"
         }
         viewModel.todayIncome.observe(viewLifecycleOwner) { income ->
             view?.findViewById<TextView>(R.id.tv_today_income)?.text =
@@ -102,6 +103,12 @@ class HomeFragment : Fragment() {
             val intent = Intent(requireContext(), OrderDetailActivity::class.java).apply {
                 putExtra("order_id", order.id)
             }
+            startActivity(intent)
+        }
+
+        // Reminder card click → full list
+        requireView().findViewById<androidx.cardview.widget.CardView>(R.id.card_reminders)?.setOnClickListener {
+            val intent = Intent(requireContext(), ReminderListActivity::class.java)
             startActivity(intent)
         }
     }

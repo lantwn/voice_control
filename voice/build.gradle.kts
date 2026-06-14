@@ -19,6 +19,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.coroutines.android)
 
+    // iFlytek SDK
+    api(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockk)
 }

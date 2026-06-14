@@ -119,21 +119,4 @@ object ElementLocator {
         // 没有可点击祖先，尝试点击原节点（某些 View 无需 isClickable 也可响应）
         return node
     }
-
-    /**
-     * 如果找到的节点本身不可点击，向上查找最近的可点击祖先。
-     * 解决 TextView 包裹在 Button 内的情况。
-     */
-    private fun findClickableOrSelf(node: AccessibilityNodeInfo): AccessibilityNodeInfo {
-        if (node.isClickable) return node
-        var parent = node.parent
-        while (parent != null) {
-            if (parent.isClickable) return parent
-            val next = parent.parent
-            if (next == null && parent !== node) parent.recycle()
-            parent = next
-        }
-        // 没有可点击祖先，尝试点击原节点（某些 View 无需 isClickable 也可响应）
-        return node
-    }
 }

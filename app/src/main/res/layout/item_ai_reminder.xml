@@ -3,35 +3,62 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:paddingVertical="7dp"
-    android:gravity="top">
+    android:gravity="top"
+    android:paddingVertical="8dp">
 
+    <!-- 级别色点 -->
     <View
         android:id="@+id/v_level_dot"
-        android:layout_width="6dp"
-        android:layout_height="6dp"
-        android:layout_marginTop="4dp"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_marginTop="3dp"
         android:layout_marginEnd="8dp"
-        android:background="@drawable/bg_dot_danger"/>
+        android:background="@drawable/bg_dot_danger" />
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical">
+
+        <!-- 类型标签 -->
+        <TextView
+            android:id="@+id/tv_reminder_type"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="9sp"
+            android:textColor="@color/tag_accepted_text"
+            android:background="@drawable/bg_status_tag"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="1dp"
+            android:layout_marginBottom="4dp" />
+
+        <!-- 标题 -->
         <TextView
             android:id="@+id/tv_reminder_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="11sp"
+            android:textSize="12sp"
             android:textColor="@color/text_primary"
-            android:lineSpacingMultiplier="1.2"/>
+            android:lineSpacingMultiplier="1.25"
+            android:layout_marginBottom="2dp" />
+
+        <!-- 内容 -->
+        <TextView
+            android:id="@+id/tv_reminder_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:lineSpacingMultiplier="1.3"
+            android:layout_marginBottom="3dp" />
+
+        <!-- 时间 -->
         <TextView
             android:id="@+id/tv_reminder_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="9sp"
-            android:textColor="@color/text_hint"
-            android:layout_marginTop="2dp"/>
+            android:textColor="@color/text_hint" />
     </LinearLayout>
 </LinearLayout>

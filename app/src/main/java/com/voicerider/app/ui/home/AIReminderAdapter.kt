@@ -32,7 +32,7 @@ class AIReminderAdapter :
 
     override fun onViewAttachedToWindow(holder: AIReminderViewHolder) {
         super.onViewAttachedToWindow(holder)
-        val pos = holder.bindingAdapterPosition
+        val pos = holder.adapterPosition
         if (pos == RecyclerView.NO_POSITION) return
 
         val reminder = getItem(pos)
@@ -104,10 +104,13 @@ class AIReminderViewHolder(
 ) : RecyclerView.ViewHolder(view) {
 
     private val dot = view.findViewById<android.view.View>(R.id.v_level_dot)
+    private val typeLabel = view.findViewById<android.widget.TextView>(R.id.tv_reminder_type)
     private val title = view.findViewById<android.widget.TextView>(R.id.tv_reminder_title)
+    private val message = view.findViewById<android.widget.TextView>(R.id.tv_reminder_message)
     private val time = view.findViewById<android.widget.TextView>(R.id.tv_reminder_time)
 
     fun bind(reminder: AirReminder) {
+        // 级别色点
         dot.setBackgroundResource(when (reminder.level) {
             ReminderLevel.URGENT -> R.drawable.bg_dot_danger
             ReminderLevel.IMPORTANT -> R.drawable.bg_dot_warning
@@ -115,7 +118,33 @@ class AIReminderViewHolder(
             ReminderLevel.SUMMARY -> R.drawable.bg_dot_success
         })
 
-        title.text = "${reminder.title}\n${reminder.message}"
-        time.text = "${reminder.timestamp}前"
+        // 类型标签 + 颜色
+        typeLabel.text = reminder.type.label
+        typeLabel.setBackgroundResource(when (reminder.level) {
+            ReminderLevel.URGENT -> R.drawable.bg_dot_danger
+            ReminderLevel.IMPORTANT -> R.drawable.bg_dot_warning
+            ReminderLevel.INFO -> R.drawable.bg_dot_info
+            ReminderLevel.SUMMARY -> R.drawable.bg_dot_success
+        })
+        typeLabel.setTextColor(when (reminder.level) {
+            ReminderLevel.URGENT -> android.graphics.Color.WHITE
+            ReminderLevel.IMPORTANT -> android.graphics.Color.WHITE
+            ReminderLevel.INFO -> android.graphics.Color.WHITE
+            ReminderLevel.SUMMARY -> android.graphics.Color.WHITE
+        })
+
+        title.text = reminder.title
+        message.text = reminder.message
+        time.text = formatTime(reminder.timestamp)
+    }
+
+    private fun formatTime(ts: Long): String {
+        val diff = System.currentTimeMillis() - ts
+        return when {
+            diff < 60_000 -> "刚刚"
+            diff < 3600_000 -> "${diff / 60_000}分钟前"
+            diff < 86400_000 -> "${diff / 3600_000}小时前"
+            else -> "${diff / 86400_000}天前"
+        }
     }
 }

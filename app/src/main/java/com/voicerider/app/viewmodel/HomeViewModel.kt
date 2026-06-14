@@ -17,6 +17,9 @@ class HomeViewModel : ViewModel() {
     private val _reminders = MutableLiveData<List<AirReminder>>(emptyList())
     val reminders: LiveData<List<AirReminder>> = _reminders
 
+    private val _remindersPreview = MutableLiveData<List<AirReminder>>(emptyList())
+    val remindersPreview: LiveData<List<AirReminder>> = _remindersPreview
+
     private val _todayCompleted = MutableLiveData(0)
     val todayCompleted: LiveData<Int> = _todayCompleted
 
@@ -105,7 +108,7 @@ class HomeViewModel : ViewModel() {
             )
         )
 
-        _reminders.value = listOf(
+        val allReminders = listOf(
             AirReminder(
                 type = ReminderType.CUSTOMER_URGE,
                 level = ReminderLevel.URGENT,
@@ -128,5 +131,7 @@ class HomeViewModel : ViewModel() {
                 orderId = "20240612038"
             )
         )
+        _reminders.value = allReminders
+        _remindersPreview.value = allReminders.take(3)
     }
 }

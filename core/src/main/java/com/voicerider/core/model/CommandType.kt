@@ -5,8 +5,8 @@ enum class CommandType(
     val requiredStatus: OrderStatus?,
     val feedback: String  // TTS + UI 反馈提示
 ) {
-    ACCEPT_ORDER(listOf("接单", "抢单", "抢"), OrderStatus.WAITING, "已接单"),
-    REJECT_ORDER(listOf("不接", "拒单", "拒"), OrderStatus.WAITING, "已拒单"),
+    ACCEPT_ORDER(listOf("接单", "抢单", "接单了", "接了", "抢"), OrderStatus.WAITING, "已接单"),
+    REJECT_ORDER(listOf("不接", "不抢", "拒单", "拒"), OrderStatus.WAITING, "已拒单"),
     PICKUP_DONE(listOf("已取餐", "取货完成", "取餐了"), OrderStatus.ACCEPTED, "已确认取餐"),
     DELIVERY_DONE(listOf("已送达", "送到了", "到了"), OrderStatus.PICKED_UP, "已确认送达"),
     NAV_TO_MERCHANT(listOf("导航到取餐点", "去取餐", "导航取餐", "取餐导航"), OrderStatus.ACCEPTED, "正在规划取餐路线"),

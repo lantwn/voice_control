@@ -104,6 +104,7 @@
 
             <!-- AI Reminders Card -->
             <androidx.cardview.widget.CardView
+                android:id="@+id/card_reminders"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
@@ -111,6 +112,9 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="1dp"
                 app:cardBackgroundColor="@color/bg_white"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground"
                 xmlns:app="http://schemas.android.com/apk/res-auto">
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_reminders"

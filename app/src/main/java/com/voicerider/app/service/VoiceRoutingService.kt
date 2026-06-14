@@ -31,8 +31,6 @@ class VoiceRoutingService : Service() {
 
     private var onCommand: ((VoiceCommand) -> Unit)? = null
     private var onFeedback: ((String, Boolean) -> Unit)? = null
-
-    // 蓝牙耳机按键 → MediaSession
     private var mediaSession: MediaSession? = null
 
     override fun onCreate() {
@@ -40,53 +38,53 @@ class VoiceRoutingService : Service() {
         Logger.i("VoiceRoutingService: created")
         instance = this
 
-        wakeUpEngine = WakeUpEngine()
+        wakeUpEngine = WakeUpEngine(this)
         ttsSpeaker = TtsSpeaker(this)
-        commandRecognizer = CommandRecognizer(SystemRecognizer(this))
+        commandRecognizer = CommandRecognizer(this, SystemRecognizer(this))
 
         wakeUpEngine.initialize()
         ttsSpeaker.initialize()
         setupMediaSession()
 
-        // Collect wake word events → start voice recognition
+        // 唤醒词 → 语音识别 → 指令执行
         serviceScope.launch {
             wakeUpEngine.wakeEvents.collect {
                 Logger.i("VoiceRoutingService: wake word detected")
-                ttsSpeaker.speak("请说")
+                wakeUpEngine.stopListening()
+
+                // 1. 播报提示音，等待播放完毕（避免 TTS 音频进入麦克风）
+                ttsSpeaker.speakAndWait("请说")
+
+                // 2. 启动 ASR 识别指令
                 val rawText = commandRecognizer.recognize()
-                when {
-                    // 超时：5 秒内无语音输入
-                    rawText == null -> {
-                        ttsSpeaker.speak("请再说一次")
-                        onFeedback?.invoke("请再说一次", false)
-                    }
-                    // 识别到语音
-                    else -> recognizeAndDispatch(rawText)
+                if (rawText != null) {
+                    recognizeAndDispatch(rawText)
+                } else {
+                    Logger.w("VoiceRoutingService: ASR returned null")
+                    ttsSpeaker.speak("请再说一次")
+                    onFeedback?.invoke("未识别到语音", false)
                 }
+
+                // 3. 恢复唤醒监听
+                wakeUpEngine.startListening()
             }
         }
 
-        // 在 collector 启动后立即开始监听，避免丢失早期唤醒事件
         wakeUpEngine.startListening()
-
         startForeground()
     }
 
-    /**
-     * 注册 MediaSession 捕获蓝牙耳机通话键作为语音触发入口。
-     * 设计 5.1 节 — 蓝牙按键激活方式。
-     */
     private fun setupMediaSession() {
         mediaSession = MediaSession(this, "VoiceRiderBluetooth").apply {
             setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or
                     MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS)
             setCallback(object : MediaSession.Callback() {
-                override fun onMediaButtonEvent(mediaButtonIntent: Intent?): Boolean {
+                override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
                     val event: KeyEvent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        mediaButtonIntent?.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
+                        mediaButtonIntent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
                     } else {
                         @Suppress("DEPRECATION")
-                        mediaButtonIntent?.getParcelableExtra(Intent.EXTRA_KEY_EVENT)
+                        mediaButtonIntent.getParcelableExtra(Intent.EXTRA_KEY_EVENT)
                     }
                     if (event == null) return false
                     if (event.action == KeyEvent.ACTION_DOWN &&
@@ -104,18 +102,16 @@ class VoiceRoutingService : Service() {
         }
     }
 
-    /** 蓝牙按键触发语音识别 */
     private suspend fun onBluetoothTrigger() {
         wakeUpEngine.stopListening()
-        ttsSpeaker.speak("请说")
+        ttsSpeaker.speakAndWait("请说")
         val rawText = commandRecognizer.recognize()
-        when {
-            rawText == null -> {
-                ttsSpeaker.speak("请再说一次")
-                onFeedback?.invoke("请再说一次", false)
-            }
-            else -> recognizeAndDispatch(rawText)
+        if (rawText != null) recognizeAndDispatch(rawText)
+        else {
+            ttsSpeaker.speak("请再说一次")
+            onFeedback?.invoke("未识别到语音", false)
         }
+        wakeUpEngine.startListening()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -123,75 +119,57 @@ class VoiceRoutingService : Service() {
         return START_STICKY
     }
 
-    fun setOnCommandListener(listener: (VoiceCommand) -> Unit) {
-        onCommand = listener
-    }
+    fun setOnCommandListener(listener: (VoiceCommand) -> Unit) { onCommand = listener }
+    fun setOnFeedbackListener(listener: (String, Boolean) -> Unit) { onFeedback = listener }
 
-    fun setOnFeedbackListener(listener: (String, Boolean) -> Unit) {
-        onFeedback = listener
-    }
-
-    /** Called from UI (text input or floating window tap) */
     fun handleTextCommand(text: String) {
         val commandType = CommandType.fromText(text)
         if (commandType != null) {
-            val cmd = VoiceCommand(type = commandType, rawText = text, confidence = 1.0f)
-            dispatchCommand(cmd)
+            dispatchCommand(VoiceCommand(type = commandType, rawText = text, confidence = 1.0f))
         } else {
             ttsSpeaker.speak("未识别的指令")
             onFeedback?.invoke("未识别的指令", false)
         }
     }
 
-    /** Called from floating window tap to start listening */
     fun startVoiceRecognition() {
         wakeUpEngine.stopListening()
-        ttsSpeaker.speak("请说")
         serviceScope.launch {
+            ttsSpeaker.speakAndWait("请说")
             val rawText = commandRecognizer.recognize()
-            when {
-                rawText == null -> {
-                    ttsSpeaker.speak("请再说一次")
-                    onFeedback?.invoke("请再说一次", false)
-                }
-                else -> recognizeAndDispatch(rawText)
+            if (rawText != null) recognizeAndDispatch(rawText)
+            else {
+                ttsSpeaker.speak("请再说一次")
+                onFeedback?.invoke("未识别到语音", false)
             }
+            wakeUpEngine.startListening()
         }
     }
 
-    fun speakFeedback(message: String) {
-        ttsSpeaker.speak(message)
-    }
+    fun speakFeedback(message: String) = ttsSpeaker.speak(message)
 
-    /** 命令匹配 + 分发 */
     private fun recognizeAndDispatch(rawText: String) {
         val commandType = CommandType.fromText(rawText)
         if (commandType != null) {
-            val cmd = VoiceCommand(type = commandType, rawText = rawText, confidence = 0.8f)
-            dispatchCommand(cmd)
+            dispatchCommand(VoiceCommand(type = commandType, rawText = rawText, confidence = 0.8f))
         } else {
             Logger.w("VoiceRoutingService: no command match for '$rawText'")
             ttsSpeaker.speak("未识别的指令")
-            onFeedback?.invoke("未识别的指令", false)
+            onFeedback?.invoke("未识别的指令：$rawText", false)
         }
     }
 
     private fun dispatchCommand(cmd: VoiceCommand) {
         Logger.i("VoiceRoutingService: dispatching ${cmd.type.name} — \"${cmd.rawText}\"")
-        // TTS 语音反馈
         ttsSpeaker.speak(cmd.type.feedback)
-        // UI 视觉反馈
         onFeedback?.invoke(cmd.type.feedback, true)
-        // 命令回调（→ accessibility 自动化），失败时回调会触发 speakFeedback
         onCommand?.invoke(cmd)
     }
 
     private fun startForeground() {
         val channelId = "voice_rider_voice"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId, "语音服务", NotificationManager.IMPORTANCE_LOW
-            )
+            val channel = NotificationChannel(channelId, "语音服务", NotificationManager.IMPORTANCE_LOW)
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
         val notification = Notification.Builder(this, channelId)
