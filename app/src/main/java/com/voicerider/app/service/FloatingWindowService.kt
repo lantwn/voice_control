@@ -49,12 +49,14 @@ class FloatingWindowService : Service() {
         }
 
         floatingView?.setOnClickListener {
-            Logger.d("FloatingWindow: clicked")
+            Logger.d("FloatingWindow: clicked — triggering voice recognition")
             toggleListening()
+            VoiceRoutingService.instance?.startVoiceRecognition()
         }
 
         floatingView?.setOnLongClickListener {
-            Logger.d("FloatingWindow: long clicked")
+            Logger.d("FloatingWindow: long clicked — stopping self")
+            stopSelf()
             true
         }
 

@@ -89,11 +89,7 @@ class OrderStateMachineTest {
         order = order.copy(status = OrderStatus.ACCEPTED)
         assertEquals(OrderStatus.ACCEPTED, order.status)
 
-        // 取餐：ACCEPTED → PICKED_UP
-        order = order.copy(status = OrderStatus.PICKED_UP)
-        assertEquals(OrderStatus.PICKED_UP, order.status)
-
-        // 开始配送：PICKED_UP → DELIVERING
+        // 取餐：ACCEPTED → DELIVERING（取餐后直接进入配送中）
         order = order.copy(status = OrderStatus.DELIVERING)
         assertEquals(OrderStatus.DELIVERING, order.status)
 

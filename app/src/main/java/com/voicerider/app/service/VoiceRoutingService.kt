@@ -14,8 +14,14 @@ import com.voicerider.voice.engine.CommandRecognizer
 import com.voicerider.voice.engine.TtsSpeaker
 import com.voicerider.voice.engine.WakeUpEngine
 import com.voicerider.voice.fallback.SystemRecognizer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class VoiceRoutingService : Service() {
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private lateinit var wakeUpEngine: WakeUpEngine
     private lateinit var commandRecognizer: CommandRecognizer
@@ -27,6 +33,7 @@ class VoiceRoutingService : Service() {
     override fun onCreate() {
         super.onCreate()
         Logger.i("VoiceRoutingService: created")
+        instance = this
 
         wakeUpEngine = WakeUpEngine()
         ttsSpeaker = TtsSpeaker(this)
@@ -34,6 +41,21 @@ class VoiceRoutingService : Service() {
 
         wakeUpEngine.initialize()
         ttsSpeaker.initialize()
+
+        // Collect wake word events → start voice recognition
+        serviceScope.launch {
+            wakeUpEngine.wakeEvents.collect {
+                Logger.i("VoiceRoutingService: wake word detected")
+                ttsSpeaker.speak("请说")
+                val command = commandRecognizer.recognize()
+                if (command != null) {
+                    dispatchCommand(command)
+                } else {
+                    ttsSpeaker.speak("未识别的指令")
+                    onFeedback?.invoke("未识别的指令", false)
+                }
+            }
+        }
 
         startForeground()
     }
@@ -51,27 +73,42 @@ class VoiceRoutingService : Service() {
         onFeedback = listener
     }
 
+    /** Called from UI (text input or floating window tap) */
     fun handleTextCommand(text: String) {
         val commandType = CommandType.fromText(text)
         if (commandType != null) {
             val cmd = VoiceCommand(type = commandType, rawText = text, confidence = 1.0f)
-            Logger.i("VoiceRoutingService: text command matched ${commandType.name}")
-
-            // TTS 语音反馈
-            ttsSpeaker.speak(commandType.feedback)
-
-            // UI 视觉反馈
-            onFeedback?.invoke(commandType.feedback, true)
-
-            onCommand?.invoke(cmd)
+            dispatchCommand(cmd)
         } else {
             ttsSpeaker.speak("未识别的指令")
             onFeedback?.invoke("未识别的指令", false)
         }
     }
 
+    /** Called from floating window tap to start listening */
+    fun startVoiceRecognition() {
+        wakeUpEngine.stopListening()
+        ttsSpeaker.speak("请说")
+        serviceScope.launch {
+            val command = commandRecognizer.recognize()
+            if (command != null) {
+                dispatchCommand(command)
+            }
+        }
+    }
+
     fun speakFeedback(message: String) {
         ttsSpeaker.speak(message)
+    }
+
+    private fun dispatchCommand(cmd: VoiceCommand) {
+        Logger.i("VoiceRoutingService: dispatching ${cmd.type.name} — \"${cmd.rawText}\"")
+        // TTS 语音反馈
+        ttsSpeaker.speak(cmd.type.feedback)
+        // UI 视觉反馈
+        onFeedback?.invoke(cmd.type.feedback, true)
+        // 命令回调（→ accessibility 自动化）
+        onCommand?.invoke(cmd)
     }
 
     private fun startForeground() {
@@ -93,9 +130,16 @@ class VoiceRoutingService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        instance = null
+        serviceScope.cancel()
         wakeUpEngine.destroy()
         commandRecognizer.destroy()
         ttsSpeaker.destroy()
         super.onDestroy()
+    }
+
+    companion object {
+        var instance: VoiceRoutingService? = null
+            private set
     }
 }

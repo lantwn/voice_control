@@ -3,6 +3,7 @@ package com.voicerider.app.viewmodel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.voicerider.app.service.VoiceRoutingService
 import com.voicerider.core.model.AirReminder
 import com.voicerider.core.model.Order
 import com.voicerider.core.model.OrderStatus
@@ -31,25 +32,25 @@ class HomeViewModel : ViewModel() {
     private val _commandFeedback = MutableLiveData<Pair<String, Boolean>>()
     val commandFeedback: LiveData<Pair<String, Boolean>> = _commandFeedback
 
-    private var voiceRoutingService: com.voicerider.app.service.VoiceRoutingService? = null
+    private val _navigateToOrderDetail = MutableLiveData<Order>()
+    val navigateToOrderDetail: LiveData<Order> = _navigateToOrderDetail
 
     init {
         loadMockData()
     }
 
-    fun setVoiceRoutingService(service: com.voicerider.app.service.VoiceRoutingService) {
-        voiceRoutingService = service
-        service.setOnFeedbackListener { message, success ->
+    fun wireVoiceService() {
+        VoiceRoutingService.instance?.setOnFeedbackListener { message, success ->
             _commandFeedback.postValue(Pair(message, success))
         }
     }
 
     fun onOrderClicked(order: Order) {
-        // Navigate to OrderDetailActivity
+        _navigateToOrderDetail.postValue(order)
     }
 
     fun onVoiceInput(text: String) {
-        voiceRoutingService?.handleTextCommand(text)
+        VoiceRoutingService.instance?.handleTextCommand(text)
     }
 
     private fun loadMockData() {

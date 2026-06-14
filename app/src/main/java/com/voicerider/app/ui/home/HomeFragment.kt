@@ -1,11 +1,11 @@
 package com.voicerider.app.ui.home
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.voicerider.app.R
+import com.voicerider.app.ui.OrderDetailActivity
 import com.voicerider.app.viewmodel.HomeViewModel
 
 class HomeFragment : Fragment() {
@@ -30,6 +31,7 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
+        viewModel.wireVoiceService()
 
         setupOrders(view)
         setupReminders(view)
@@ -54,11 +56,24 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupVoiceBar(view: View) {
-        view.findViewById<EditText>(R.id.et_command).setOnEditorActionListener { _, _, _ ->
-            val text = view.findViewById<EditText>(R.id.et_command).text.toString()
+        val etCommand = view.findViewById<EditText>(R.id.et_command)
+        val tvSend = view.findViewById<TextView>(R.id.tv_send)
+
+        // Send button click
+        tvSend.setOnClickListener {
+            val text = etCommand.text.toString()
             if (text.isNotBlank()) {
                 viewModel.onVoiceInput(text)
-                view.findViewById<EditText>(R.id.et_command).text?.clear()
+                etCommand.text?.clear()
+            }
+        }
+
+        // Keyboard "Done" key
+        etCommand.setOnEditorActionListener { _, _, _ ->
+            val text = etCommand.text.toString()
+            if (text.isNotBlank()) {
+                viewModel.onVoiceInput(text)
+                etCommand.text?.clear()
                 true
             } else false
         }
@@ -81,6 +96,12 @@ class HomeFragment : Fragment() {
         viewModel.commandFeedback.observe(viewLifecycleOwner) { (message, success) ->
             val emoji = if (success) "✅ " else "⚠️ "
             Toast.makeText(context, emoji + message, Toast.LENGTH_SHORT).show()
+        }
+        viewModel.navigateToOrderDetail.observe(viewLifecycleOwner) { order ->
+            val intent = Intent(requireContext(), OrderDetailActivity::class.java).apply {
+                putExtra("order_id", order.id)
+            }
+            startActivity(intent)
         }
     }
 }

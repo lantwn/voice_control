@@ -63,7 +63,7 @@ class OrderActionHandler(
         currentOrder = currentOrder?.copy(
             status = when (commandType) {
                 CommandType.ACCEPT_ORDER -> OrderStatus.ACCEPTED
-                CommandType.PICKUP_DONE -> OrderStatus.PICKED_UP
+                CommandType.PICKUP_DONE -> OrderStatus.DELIVERING   // 取餐后进入配送中
                 CommandType.DELIVERY_DONE -> OrderStatus.COMPLETED
                 else -> currentOrder?.status ?: OrderStatus.WAITING
             }
