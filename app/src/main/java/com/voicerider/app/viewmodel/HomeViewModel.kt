@@ -28,8 +28,20 @@ class HomeViewModel : ViewModel() {
     private val _isVoiceReady = MutableLiveData(true)
     val isVoiceReady: LiveData<Boolean> = _isVoiceReady
 
+    private val _commandFeedback = MutableLiveData<Pair<String, Boolean>>()
+    val commandFeedback: LiveData<Pair<String, Boolean>> = _commandFeedback
+
+    private var voiceRoutingService: com.voicerider.app.service.VoiceRoutingService? = null
+
     init {
         loadMockData()
+    }
+
+    fun setVoiceRoutingService(service: com.voicerider.app.service.VoiceRoutingService) {
+        voiceRoutingService = service
+        service.setOnFeedbackListener { message, success ->
+            _commandFeedback.postValue(Pair(message, success))
+        }
     }
 
     fun onOrderClicked(order: Order) {
@@ -37,7 +49,7 @@ class HomeViewModel : ViewModel() {
     }
 
     fun onVoiceInput(text: String) {
-        // Dispatch to VoiceRoutingService
+        voiceRoutingService?.handleTextCommand(text)
     }
 
     private fun loadMockData() {

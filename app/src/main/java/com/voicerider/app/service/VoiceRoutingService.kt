@@ -22,6 +22,7 @@ class VoiceRoutingService : Service() {
     private lateinit var ttsSpeaker: TtsSpeaker
 
     private var onCommand: ((VoiceCommand) -> Unit)? = null
+    private var onFeedback: ((String, Boolean) -> Unit)? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -46,14 +47,26 @@ class VoiceRoutingService : Service() {
         onCommand = listener
     }
 
+    fun setOnFeedbackListener(listener: (String, Boolean) -> Unit) {
+        onFeedback = listener
+    }
+
     fun handleTextCommand(text: String) {
         val commandType = CommandType.fromText(text)
         if (commandType != null) {
             val cmd = VoiceCommand(type = commandType, rawText = text, confidence = 1.0f)
             Logger.i("VoiceRoutingService: text command matched ${commandType.name}")
+
+            // TTS 语音反馈
+            ttsSpeaker.speak(commandType.feedback)
+
+            // UI 视觉反馈
+            onFeedback?.invoke(commandType.feedback, true)
+
             onCommand?.invoke(cmd)
         } else {
             ttsSpeaker.speak("未识别的指令")
+            onFeedback?.invoke("未识别的指令", false)
         }
     }
 
